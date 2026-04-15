@@ -51,7 +51,7 @@ class DragonFruitCOCODataset(Dataset):
         return len(self.ids)
 
 # 2. Cấu hình Hyperparameters
-device = torch.device("cuda")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH_SIZE = 8  # Bạn có thể thử tăng lên 12 hoặc 16 nếu VRAM còn dư
 EPOCHS = 30
 LEARNING_RATE = 1e-4
