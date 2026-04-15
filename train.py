@@ -87,7 +87,7 @@ model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 criterion = nn.CrossEntropyLoss()
 
-print(f"Đang huấn luyện trên: {torch.cuda.get_device_name(0)}")
+print(f"Đang huấn luyện trên: {device}")
 print("Bắt đầu huấn luyện với dữ liệu COCO...")
 
 train_losses = []
