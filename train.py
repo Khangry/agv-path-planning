@@ -69,6 +69,8 @@ LEARNING_RATE = 1e-4
 
 data_transforms = transforms.Compose([
     transforms.Resize((256, 256)),
+    transforms.RandomHorizontalFlip(p=0.5), # Lật ảnh giúp robot học được cả cua trái/phải
+    transforms.ColorJitter(brightness=0.2, contrast=0.2), # Chịu được nắng/bóng râm ruộng thanh long
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
@@ -102,8 +104,11 @@ train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
 val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
 # 4. Khởi tạo Mô hình DeepLabV3
-model = models.segmentation.deeplabv3_resnet50(weights=models.segmentation.DeepLabV3_ResNet50_Weights.DEFAULT)
-model.classifier[4] = nn.Conv2d(256, 2, kernel_size=(1, 1)) # 2 lớp: Nền và Đường đi
+model = models.segmentation.deeplabv3_mobilenet_v3_large(
+    weights=models.segmentation.DeepLabV3_MobileNet_V3_Large_Weights.DEFAULT
+)
+classifier_in_channels = model.classifier[4].in_channels
+model.classifier[4] = nn.Conv2d(classifier_in_channels, 2,     kernel_size=(1, 1))
 model.to(device)
 
 # 5. Training
@@ -121,16 +126,23 @@ print("Bắt đầu huấn luyện với dữ liệu COCO...")
 
 train_losses = []
 val_losses = []
+<<<<<<< Updated upstream
 best_val_loss = float('inf')
 
 for epoch in range(EPOCHS):
     # --- TRAINING LOOP ---
+=======
+
+for epoch in range(EPOCHS):
+    # --- GIAI ĐOẠN TRAIN ---
+>>>>>>> Stashed changes
     model.train()
     total_train_loss = 0
     for imgs, masks in train_loader:
         imgs, masks = imgs.to(device), masks.to(device)
         
         optimizer.zero_grad()
+<<<<<<< Updated upstream
         
         # Sử dụng AMP để giảm VRAM và tăng tốc
         with torch.cuda.amp.autocast(enabled=device.type == 'cuda'):
@@ -155,10 +167,30 @@ for epoch in range(EPOCHS):
             with torch.cuda.amp.autocast(enabled=device.type == 'cuda'):
                 outputs = model(imgs)['out']
                 loss = criterion(outputs, masks)
+=======
+        outputs = model(imgs)['out']
+        loss = criterion(outputs, masks)
+        loss.backward()
+        optimizer.step()
+        total_train_loss += loss.item()
+    
+    avg_train_loss = total_train_loss / len(train_loader)
+    train_losses.append(avg_train_loss)
+
+    # --- GIAI ĐOẠN VALIDATION (KIỂM TRA) ---
+    model.eval() # Chuyển sang chế độ đánh giá
+    total_val_loss = 0
+    with torch.no_grad(): # Không tính gradient để tiết kiệm bộ nhớ
+        for imgs, masks in val_loader:
+            imgs, masks = imgs.to(device), masks.to(device)
+            outputs = model(imgs)['out']
+            loss = criterion(outputs, masks)
+>>>>>>> Stashed changes
             total_val_loss += loss.item()
             
     avg_val_loss = total_val_loss / len(val_loader)
     val_losses.append(avg_val_loss)
+<<<<<<< Updated upstream
     
     print(f"Epoch {epoch+1}/{EPOCHS}, Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}")
     
@@ -170,11 +202,16 @@ for epoch in range(EPOCHS):
         best_val_loss = avg_val_loss
         torch.save(model.state_dict(), "dragon_fruit_path_coco_best.pth")
         print(f"  --> Đã lưu mô hình tốt nhất mới (Val Loss: {best_val_loss:.4f})")
+=======
+
+    print(f"Epoch {epoch+1}: Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
+>>>>>>> Stashed changes
 
 # 6. Lưu mô hình epoch cuối
 torch.save(model.state_dict(), "dragon_fruit_path_coco_last.pth")
 print("Hoàn tất! Đã lưu mô hình epoch cuối thành công!")
 
+<<<<<<< Updated upstream
 # Vẽ biểu đồ Loss
 plt.figure(figsize=(10, 5))
 plt.plot(range(1, EPOCHS + 1), train_losses, label='Training Loss')
@@ -186,3 +223,34 @@ plt.legend()
 plt.grid(True)
 plt.savefig('loss_chart.png') # Lưu biểu đồ thành ảnh
 print("Đã lưu biểu đồ loss_chart.png")
+=======
+# Giả sử bạn đã lưu kết quả vào hai danh sách: train_losses và val_losses
+epochs_range = range(1, EPOCHS + 1)
+
+plt.figure(figsize=(12, 6))
+
+# 1. Vẽ đường Training Loss
+plt.plot(epochs_range, train_losses, 'b-', label='Training Loss', linewidth=2)
+
+# 2. Vẽ đường Validation Loss
+plt.plot(epochs_range, val_losses, 'r-', label='Validation Loss', linewidth=2)
+
+# Thêm các thông tin bổ trợ
+plt.title('Biểu đồ So sánh Loss - Nhận diện đường đi Thanh Long', fontsize=14)
+plt.xlabel('Epoch (Vòng lặp)', fontsize=12)
+plt.ylabel('Loss (Sai số)', fontsize=12)
+plt.legend(loc='upper right') # Hiển thị chú thích
+plt.grid(True, linestyle='--', alpha=0.7)
+
+# Đánh dấu điểm Val Loss thấp nhất (điểm mô hình tốt nhất)
+min_val_loss_epoch = val_losses.index(min(val_losses)) + 1
+plt.annotate(f'Best Model Here', 
+             xy=(min_val_loss_epoch, min(val_losses)), 
+             xytext=(min_val_loss_epoch + 2, min(val_losses) + 0.1),
+             arrowprops=dict(facecolor='black', shrink=0.05),
+             fontsize=10)
+
+plt.tight_layout()
+plt.savefig('ovverfitting_check_chart.png') # Lưu ảnh để xem lại
+plt.show()
+>>>>>>> Stashed changes

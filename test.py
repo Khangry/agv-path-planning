@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import cv2
 import numpy as np
 import os
@@ -9,6 +10,7 @@ from PIL import Image
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 num_classes = 2 
 
+<<<<<<< Updated upstream
 model = models.segmentation.deeplabv3_resnet50(weights=models.segmentation.DeepLabV3_ResNet50_Weights.DEFAULT)
 model.classifier[4] = torch.nn.Conv2d(256, num_classes, kernel_size=(1, 1))
 
@@ -25,6 +27,12 @@ except FileNotFoundError:
     print("Lỗi: Không tìm thấy file model. Vui lòng chạy train.py trước.")
     exit(1)
 
+=======
+model = models.segmentation.deeplabv3_mobilenet_v3_large(weights='DEFAULT')
+classifier_in_channels = model.classifier[4].in_channels
+model.classifier[4] = nn.Conv2d(classifier_in_channels, 2, kernel_size=(1, 1))
+model.load_state_dict(torch.load("dragon_fruit_path_coco.pth")) 
+>>>>>>> Stashed changes
 model.to(device)
 
 # Sử dụng FP16 (Half precision) nếu có CUDA để tăng tốc độ Inference
